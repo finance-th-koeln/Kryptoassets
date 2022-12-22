@@ -1,0 +1,70 @@
+import ecdsa
+
+# Parameter der ECDSA definieren (am besten nicht verändern, da es zum Bsp. in der Vorlesung passt)
+_a = 0
+_b = 7
+_p = 37
+_n = 13
+
+print(f"a = {_a}")
+print(f"b = {_b}")
+print(f"p = {_p}")
+print(f"n = {_n}")
+
+# Definition der elliptischen Kurve und ihres Rangs
+curve_secp256k1 = ecdsa.ellipticcurve.CurveFp(_p, _a, _b)
+ec_order = _n
+
+# Definition des Generator Punkts
+_Gx = int(input("Welchen X-Wert möchtest Du in Deinem Generator Punkt: "))
+_Gy = int(input("Welchen Y-Wert möchtest Du in Deinem Generator Punkt: "))
+generator_secp256k1 = ecdsa.ellipticcurve.Point(curve_secp256k1, _Gx, _Gy, _n)
+G = generator_secp256k1
+print(f"G = {G}")
+
+# Auswahl des Privaten Schlüssels
+k_prv = int(input("Welchen privaten Schlüssel möchtest Du definieren: "))
+print(f"k_prv = {k_prv}")
+
+# Suchen des passenden öffentlichen Schlüssels (auf der Ellipse)
+K_pub = k_prv * G
+print(f"K_pub = {K_pub}")
+
+# Signatur
+
+# Definition der zu signierenden Nachricht
+t = int(input("Welchen Text (als Ganzzahl) möchtest Du verschlüsseln: "))
+print(f"t = {t}")
+
+# Entscheidung bzgl. einer Zufallszahl i
+i = 7
+P = i * G
+print(f"P = {P}")
+
+# Finde r
+r = P.x() % ec_order
+print(f"r = {r}")
+
+# Finde s (modular multiplicative inverse of i to find s)
+i_inv = pow(i, -1, ec_order)
+s = (i_inv * (t + r * k_prv)) % ec_order
+print(f"s = {s}")
+
+# Verifikation
+
+# find modular multiplicative inverse of s to find u1 and u2
+s_inv = pow(s, -1, ec_order)
+u1 = (s_inv * t) % ec_order
+u2 = (s_inv * r) % ec_order
+print(f"u1 = {u1}")
+print(f"u2 = {u2}")
+
+# Finde P
+P_alt = u1 * G + u2 * K_pub
+print(f"P = {P_alt}")
+
+# Überprüfe ob xp mod n gleich r ist
+if P_alt.x() % ec_order == r:
+    print(f"Die Nachricht t = {t} wurde mit dem privaten Schlüssel des Absenders signiert.")
+else:
+    print(f"Die Nachricht t = {t} wurde NICHT mit dem privaten Schlüssel des Absenders signiert.")
