@@ -65,6 +65,6 @@ print(f"P = {P_alt}")
 
 # Überprüfe ob xp mod n gleich r ist
 if P_alt.x() % ec_order == r:
-    print(f"Die Nachricht t = {t} wurde mit dem privaten Schlüssel des Absenders signiert.")
+    print(f"Die Nachricht t = {t} wurde mit dem privaten Schlüssel des Absenders signiert. Sie / er ist also der Absender.")
 else:
-    print(f"Die Nachricht t = {t} wurde NICHT mit dem privaten Schlüssel des Absenders signiert.")
+    print(f"Die Nachricht t = {t} wurde NICHT mit dem privaten Schlüssel des Absenders signiert. Sie / er ist also NICHT der Absender.")
