@@ -1,0 +1,148 @@
+import streamlit as st
+import math
+
+
+# --- Hilfsfunktionen ---
+
+def is_prime(n):
+    """Eine einfache Funktion, um zu prüfen, ob eine Zahl eine Primzahl ist."""
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+    return True
+
+
+def suggest_primes(start_from, count=10):
+    """Findet 'count' Primzahlen, die größer als 'start_from' sind."""
+    primes = []
+    num = start_from + 1
+    while len(primes) < count:
+        if is_prime(num):
+            primes.append(num)
+        num += 1
+    return primes
+
+
+def find_valid_e_values(phi, count=10):
+    """Findet bis zu 'count' mögliche gültige Werte für e."""
+    e_values = []
+    for e_candidate in range(3, phi):
+        if len(e_values) >= count:
+            break
+        if math.gcd(e_candidate, phi) == 1:
+            e_values.append(e_candidate)
+    return e_values
+
+
+def calculate_possible_d_values(e, phi, count=10):
+    """Berechnet den kleinsten privaten Schlüssel d und leitet weitere gültige davon ab."""
+    try:
+        d_base = pow(e, -1, phi)
+        return [d_base + i * phi for i in range(count)]
+    except ValueError:
+        return []
+
+
+# --- Streamlit App ---
+
+st.set_page_config(page_title="RSA Key Checker", page_icon="🔑")
+
+st.title(" RSA Key Generation Checker")
+st.markdown(
+    "Ein interaktives Tool, um die Schritte der RSA-Schlüsselerzeugung zu überprüfen – jetzt mit umfassenden Vorschlägen!")
+
+st.markdown("---")
+
+# --- Schritt 1: Primzahlen p und q eingeben ---
+st.header("Schritt 1: Geheime Primzahlen wählen 🤫")
+p = st.number_input("Gebt eure erste Primzahl (p) ein:", min_value=2, step=1, format="%d", value=None,
+                    placeholder="z.B. 11")
+q = st.number_input("Gebt eure zweite Primzahl (q) ein:", min_value=2, step=1, format="%d", value=None,
+                    placeholder="z.B. 13")
+
+# Platzhalter für die Fortsetzung der Logik
+continue_process = False
+
+if p is not None and q is not None:
+    p_is_prime = is_prime(p)
+    q_is_prime = is_prime(q)
+
+    if not p_is_prime:
+        suggestions = ", ".join(map(str, suggest_primes(p)))
+        st.error(f"`{p}` ist keine Primzahl. Gültige Primzahlen in dieser Größenordnung wären z.B.: **{suggestions}**.")
+    elif not q_is_prime:
+        suggestions = ", ".join(map(str, suggest_primes(q)))
+        st.error(f"`{q}` ist keine Primzahl. Gültige Primzahlen in dieser Größenordnung wären z.B.: **{suggestions}**.")
+    elif p == q:
+        st.error("Fehler: p und q dürfen nicht dieselbe Zahl sein!")
+    else:
+        st.success("Sehr gut! Beide Zahlen sind gültige Primzahlen.")
+        continue_process = True
+
+if continue_process:
+    # --- Schritt 2: N und Phi(n) berechnen ---
+    N = p * q
+    phi = (p - 1) * (q - 1)
+
+    st.markdown("---")
+    st.header("Schritt 2: Öffentliche und geheime Hilfszahlen 🧮")
+    st.markdown(f"Aus euren Primzahlen `p={p}` und `q={q}` ergeben sich:")
+    st.info(f"**Öffentlicher Modul N = {N}**")
+    st.warning(f"**Geheime Hilfszahl Phi(n) = {phi}**")
+
+    # --- Schritt 3: Öffentlichen Schlüssel e wählen ---
+    st.markdown("---")
+    st.header("Schritt 3: Den öffentlichen Schlüssel (e) wählen 🔓")
+    e = st.number_input("Gebt euren gewählten öffentlichen Schlüssel (e) ein:", min_value=2, step=1, format="%d",
+                        value=None, placeholder="z.B. 7")
+
+    if e is not None:
+        is_e_valid = 1 < e < phi and math.gcd(e, phi) == 1
+
+        if is_e_valid:
+            st.success(f"`e = {e}` ist ein gültiger öffentlicher Schlüssel!")
+
+            # --- Schritt 4: Privaten Schlüssel d berechnen ---
+            st.markdown("---")
+            st.header("Schritt 4: Den privaten Schlüssel (d) berechnen 🔑")
+
+            d = st.number_input("Gebt euren berechneten privaten Schlüssel (d) ein:", min_value=2, step=1, format="%d",
+                                value=None, placeholder="z.B. 103")
+
+            if d is not None:
+                if (e * d) % phi == 1:
+                    st.success(f"`d = {d}` ist ein korrekter privater Schlüssel!")
+
+                    # --- Finale Ausgabe ---
+                    st.markdown("---")
+                    st.header("🎉 Gratulation! Alle Schritte sind korrekt. 🎉")
+                    st.markdown("Hier sind eure finalen RSA-Schlüssel:")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("Öffentliches Schloss 🔓")
+                        st.code(f"Public Key = ({e}, {N})")
+                    with col2:
+                        st.subheader("Privater Schlüssel 🔑")
+                        st.code(f"Private Key = ({d}, {N})")
+                else:
+                    d_suggestions = calculate_possible_d_values(e, phi)
+                    d_suggestions_str = ", ".join(map(str, d_suggestions))
+                    st.error(
+                        f"Leider falsch. Euer `d` ist nicht korrekt. Gültige private Schlüssel wären zum Beispiel: **{d_suggestions_str}**.")
+
+        else:
+            e_suggestions = find_valid_e_values(phi)
+            e_suggestions_str = ", ".join(map(str, e_suggestions))
+            error_message = f"`e = {e}` ist ungültig. Stellt sicher, dass `1 < e < {phi}` ist und `e` keinen gemeinsamen Teiler mit `{phi}` hat."
+            if e_suggestions:
+                error_message += f"\n\nGültige Werte wären zum Beispiel: **{e_suggestions_str}**."
+            st.error(error_message)
